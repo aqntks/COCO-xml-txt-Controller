@@ -87,7 +87,7 @@ def augment_img_font(rootPath, templatePath, fileName, index, typeName):
         x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
         w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
 
-        ranNum = random.randrange(0, len(hangul) + 1)
+        ranNum = random.randrange(0, len(hangul))
         ranHangul = hangul[ranNum]
         tag.find("name").text = ranHangul
 
@@ -130,6 +130,7 @@ def blur(image):
     elif ranNum == 1: image = image.filter(ImageFilter.GaussianBlur)
     elif ranNum == 2: image = image.filter(ImageFilter.BoxBlur(3))
     elif ranNum == 3: image = image.filter(ImageFilter.BoxBlur(5))
+
     else: pass
 
     return image
@@ -137,7 +138,7 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:\\Users\\home\\Desktop\\work\\hangul\\hangul')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/augment')
     parser.add_argument('--count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)

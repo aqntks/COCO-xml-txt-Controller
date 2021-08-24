@@ -136,7 +136,7 @@ def txt_split(txt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default='resize')
-    parser.add_argument('--path', type=str, default='template')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/id/template')
     parser.add_argument('--crop-txt', type=str, default='crop_list.txt')
     option = parser.parse_args()
     main(opt=option)
