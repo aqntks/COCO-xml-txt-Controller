@@ -45,34 +45,42 @@ def folderSplit(rootPath):
 
 
 def main(opt):
-    index, rootPath, endCount = 1, opt.path, opt.count
+    index, rootPath, jumin_count, driver_count = 1, opt.path, opt.jumin_count, opt.driver_count
 
     template, jumin_template, driver_template, crop, result = folderSplit(rootPath)
 
     juminFileList = os.listdir(jumin_template)
     driverFileList = os.listdir(driver_template)
 
-    # while index <= endCount:
+    img_font_ran = random.randrange(0, 2)
+    if img_font_ran == 0:
+        crop_font_path = crop + '/encnum/arial'
+    else:
+        crop_font_path = crop + '/encnum/consolas'
+
+    #
+    # while index <= jumin_count:
     #     for file in juminFileList:
-    #         if file.split('.')[1] == 'jpg':
+    #         if file.split('.')[1].lower() == 'jpg':
     #             fileName = file.split('.')[0]
     #             image, tree = jumin(template + '/jumin', fileName, crop)
-    #             image.save(result + '/jumin_' + str(index) + '.jpg', 'jpeg')
-    #             tree.write(result + '/jumin_' + str(index) + '.xml')
+    #             image.save(result + '/jumin/jumin_' + str(index) + '.jpg', 'jpeg')
+    #             tree.write(result + '/jumin/jumin_' + str(index) + '.xml')
     #             print(f'생성: jumin_{str(index)}.jpg')
     #             index = index + 1
-    #             if index > endCount: break
-    # index = 1
-    while index <= endCount:
+    #             if index > jumin_count: break
+
+    index = 1
+    while index <= driver_count:
         for file in driverFileList:
-            if file.split('.')[1] == 'jpg':
+            if file.split('.')[1].lower() == 'jpg':
                 fileName = file.split('.')[0]
-                image, tree = driver(template + '/driver', fileName, crop)
-                image.save(result + '/driver_' + str(index) + '.jpg', 'jpeg')
-                tree.write(result + '/driver_' + str(index) + '.xml')
+                image, tree = driver(template + '/driver', fileName, crop, crop_font_path)
+                image.save(result + '/driver/driver_' + str(index) + '.jpg', 'jpeg')
+                tree.write(result + '/driver/driver_' + str(index) + '.xml')
                 print(f'생성: driver_{str(index)}.jpg')
                 index = index + 1
-                if index > endCount: break
+                if index > driver_count: break
 
 
 def addFont(fontType, value, img, rect):
@@ -100,6 +108,15 @@ def addImage(img, crop, rect):
     return img
 
 
+def addImageA(img, crop, rect):
+    x, y, w, h = rect
+    image_crop = Image.open(crop).convert('RGBA')
+    image_crop = image_crop.resize((w, h))
+    img.paste(im=image_crop, box=(x, y), mask=image_crop)
+    return img
+
+
+
 def loadHangul():
     # 한글 리스트 불러오기
     f, hangul = open('hangul591_list.txt', 'r', encoding='UTF8'), []
@@ -124,12 +141,12 @@ def jumin(templatePath, fileName, cropPath):
         w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
         rect = (x, y, w, h)
 
-        if tag.findtext("name").split('_')[-1] == 'ko':
-            if tag.findtext("name") == 'name_ko':
+        if tag.findtext("name").split('_')[-1] == 'ko' or tag.findtext("name").split('_')[-1] == 'kor':
+            if tag.findtext("name") == 'name_ko' or tag.findtext("name") == 'jumin_kor':
                 fontType = 'batang'
             if tag.findtext("name") == 'addr_ko':
                 fontType = 'batang'
-            if tag.findtext("name") == 'issueplace_ko':
+            if tag.findtext("name") == 'issueplace_ko' or tag.findtext("name") == 'issue_kor':
                 fontType = 'somang'
             ranNum = random.randrange(0, len(hangul))
             value = hangul[ranNum]
@@ -159,7 +176,7 @@ def jumin(templatePath, fileName, cropPath):
             ran = fileRandom(filePath)
             crop = filePath + f'/{ran}'
             image = addImage(image, crop, rect)
-        if tag.findtext("name") == 'title_jumin':  # ###### 이미지 합성
+        if tag.findtext("name") == 'title_jumin' or tag.findtext("name") == 'title-jumin':  # ###### 이미지 합성
             folderPath = cropPath + '/title_jumin'
             ran = fileRandom(folderPath)
             crop = folderPath + f'/{ran}'
@@ -170,7 +187,7 @@ def jumin(templatePath, fileName, cropPath):
     return image, tree
 
 
-def driver(templatePath, fileName, cropPath):
+def driver(templatePath, fileName, cropPath, crop_font_path):
     hangul = loadHangul()
 
     image = Image.open(templatePath + '/' + fileName + '.jpg')
@@ -203,25 +220,25 @@ def driver(templatePath, fileName, cropPath):
             crop = filePath + f'/{ran}'
             image = addImage(image, crop, rect)
         if tag.findtext("name") == 'encnum_dg':   # ## 합성
-            folderPath = cropPath + '/encnum/dg'
+            folderPath = crop_font_path + '/dg'
             value = dirDiscovery(folderPath)
             filePath = folderPath + f'/{value}'
             tag.find("name").text = str(value)
             ran = fileRandom(filePath)
             crop = filePath + f'/{ran}'
-            image = addImage(image, crop, rect)
+            image = addImageA(image, crop, rect)
         if tag.findtext("name") == 'addr_en':
             value = random.randrange(0, 10)
             tag.find("name").text = str(value)
             addFont('gulim', value, image, rect)
         if tag.findtext("name") == 'encnum_en':   # ## 합성
-            folderPath = cropPath + '/encnum/en'
+            folderPath = crop_font_path + '/en'
             value = dirDiscovery(folderPath)
             filePath = folderPath + f'/{value}'
             tag.find("name").text = str(value)
             ran = fileRandom(filePath)
             crop = filePath + f'/{ran}'
-            image = addImage(image, crop, rect)
+            image = addImageA(image, crop, rect)
         if tag.findtext("name") == 'licensenum_hyp' or tag.findtext("name") == 'regnum_hyp': ### 합성
             folderPath = cropPath + '/driver_hyp'
             ran = fileRandom(folderPath)
@@ -272,7 +289,8 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/id')
-    parser.add_argument('--count', type=int, default=100)
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/augment')
+    parser.add_argument('--jumin_count', type=int, default=100)
+    parser.add_argument('--driver_count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)

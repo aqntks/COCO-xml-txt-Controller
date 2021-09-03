@@ -36,7 +36,7 @@ def augment(rootPath, templatePath, fileName, index, typeName):
     root = tree.getroot()
 
     # 한글 리스트 불러오기
-    f, hangul = open('hangul520_list.txt', 'r', encoding='UTF8'), []
+    f, hangul = open('hangul591_list.txt', 'r', encoding='UTF8'), []
     while True:
         line = f.readline().replace("\n", "").strip()
         if not line: break
@@ -138,7 +138,7 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/augment')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/ko_en_dg/template')
     parser.add_argument('--count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)
