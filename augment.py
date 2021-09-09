@@ -1,4 +1,4 @@
-from xml.etree.ElementTree import parse
+from xml_search.etree.ElementTree import parse
 import os
 import argparse
 import random

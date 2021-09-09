@@ -58,7 +58,7 @@ def main(opt):
         for file in tempList:
             if file.split('.')[1] == 'jpg':
                 fileName = file.split('.')[0]
-                image, tree = encnum_only_img(template, fileName, crop, index)
+                image, tree = encnum_font(template, fileName, index)
                 image.save(result + f'/enc_' + str(index) + '.jpg', 'jpeg')
                 tree.write(result + f'/enc_' + str(index) + '.xml', encoding='utf-8')
                 print(f'생성: enc_{str(index)}.jpg')
@@ -79,11 +79,13 @@ def addFont(fontType, value, img, rect):
 
     size = w if w > h else h
     font = ImageFont.truetype(fontType, size)
+    valueSize = font.getsize(str(value))
     draw = ImageDraw.Draw(img)
 
-    draw.text((x + (0.25 * w), y), str(value), font=font, fill=fillList[fillRandom])
+    draw.text((x, int(y - h * 0.05)), str(value), font=font, fill=fillList[fillRandom])
+    # draw.text((x + (0.25 * w), y), str(value), font=font, fill=fillList[fillRandom])
 
-    return img
+    return img, valueSize
 
 
 def addImage(img, crop, rect):
@@ -104,6 +106,61 @@ def loadHangul():
     f.close()
 
     return hangul
+
+
+def encnum_font(templatePath, fileName, index):
+    image = Image.open(templatePath + '/' + fileName + '.jpg')
+    tree = parse(templatePath + '/' + fileName + '.xml')
+    root = tree.getroot()
+
+    for tag in root.iter("object"):
+        x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
+        w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
+        rect = (x, y, w, h)
+
+        valueList = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+        fontList = ['font/CONSOLAB.TTF', 'arial']
+
+        val_ran = random.randrange(0, len(valueList))
+        font_ran = random.randrange(0, len(fontList))
+        image, valueSize = addFont(fontList[font_ran], valueList[val_ran], image, rect)
+        tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+        tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+        tag.find("name").text = str(valueList[val_ran])
+
+    image = blur(image)
+
+    return image, tree
+
+
+def encnum_only_img_random_font(templatePath, fileName, cropPath, index):
+    image = Image.open(templatePath + '/' + fileName + '.jpg')
+    tree = parse(templatePath + '/' + fileName + '.xml')
+    root = tree.getroot()
+
+    crop_font_path = cropPath
+
+    for tag in root.iter("object"):
+        x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
+        w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
+        rect = (x, y, w, h)
+
+        dg_en_ran = random.randrange(0, 3)
+        if dg_en_ran == 0:
+            dg_en_crop = crop_font_path + '/dg'
+        else:
+            dg_en_crop = crop_font_path + '/en'
+
+        value = dirDiscovery(dg_en_crop)
+        filePath = dg_en_crop + f'/{value}'
+        tag.find("name").text = str(value)
+        ran = fileRandom(filePath)
+        crop = filePath + f'/{ran}'
+        image = addImage(image, crop, rect)
+
+    image = blur(image)
+
+    return image, tree
 
 
 def encnum_only_img(templatePath, fileName, cropPath, index):
@@ -262,7 +319,7 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/encnum_aug')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/encnum_last')
     parser.add_argument('--count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)

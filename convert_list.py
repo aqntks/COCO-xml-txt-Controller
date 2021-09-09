@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 
-import xml.etree.ElementTree as ET
+import xml_search.etree.ElementTree as ET
 import pickle
 import os
 from os import listdir, getcwd
