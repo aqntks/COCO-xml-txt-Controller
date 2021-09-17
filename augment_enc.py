@@ -58,10 +58,10 @@ def main(opt):
         for file in tempList:
             if file.split('.')[1] == 'jpg':
                 fileName = file.split('.')[0]
-                image, tree = encnum_font(template, fileName, index)
-                image.save(result + f'/enc_' + str(index) + '.jpg', 'jpeg')
-                tree.write(result + f'/enc_' + str(index) + '.xml', encoding='utf-8')
-                print(f'생성: enc_{str(index)}.jpg')
+                image, tree = temp_jumin_font(template, fileName, index, crop)
+                image.save(result + f'/' + str(index) + '.jpg', 'jpeg')
+                tree.write(result + f'/' + str(index) + '.xml', encoding='utf-8')
+                print(f'생성: {str(index)}.jpg')
                 index = index + 1
                 if index > endCount: break
 
@@ -108,6 +108,70 @@ def loadHangul():
     return hangul
 
 
+def temp_jumin_font(templatePath, fileName, index, crop):
+    image = Image.open(templatePath + '/' + fileName + '.jpg')
+    tree = parse(templatePath + '/' + fileName + '.xml')
+    root = tree.getroot()
+
+    # 한글 리스트 불러오기
+    f, hangul = open('hangul591_list.txt', 'r', encoding='UTF8'), []
+    while True:
+        line = f.readline().replace("\n", "").strip()
+        if not line: break
+        hangul.append(line)
+    f.close()
+
+    hanList = ['天','地','玄','黃','宇','宙','洪','荒','蓋','此','身','髮','四','大','五','常']
+    fontList = ['font/GulimChe-02.ttf']
+
+    check_ran = random.randrange(0, 2)
+    check_check = 0
+
+    for tag in root.iter("object"):
+        x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
+        w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
+        rect = (x, y, w, h)
+
+        if tag.findtext("name") == 'ko':
+            val_ran = random.randrange(0, len(hangul))
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], hangul[val_ran], image, rect)
+            tag.find("name").text = str(hangul[val_ran])
+        if tag.findtext("name") == 'dg':
+            val_ran = random.randrange(0, 10)
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], val_ran, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+            tag.find("name").text = str(val_ran)
+        if tag.findtext("name") == 'han':
+            val_ran = random.randrange(0, len(hanList))
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], hanList[val_ran], image, rect)
+        if tag.findtext("name") == 'hyp':
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], '-', image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+            tag.find("name").text = '-'
+        if tag.findtext("name") == 't_jumin_photo':
+            ran = fileRandom(f'{crop}/photo')
+            crop = f'{crop}/photo/{ran}'
+            image = addImage(image, crop, rect)
+        if tag.findtext("name") == 'check':
+            if check_check == check_ran:
+                font_ran = random.randrange(0, len(fontList))
+                image, valueSize = addFont(fontList[font_ran], '√', image, rect)
+                tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+                tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+                tag.find("name").text = 'check_yes'
+            check_check += 1
+
+    # image = blur(image)
+
+    return image, tree
+
+
 def encnum_font(templatePath, fileName, index):
     image = Image.open(templatePath + '/' + fileName + '.jpg')
     tree = parse(templatePath + '/' + fileName + '.xml')
@@ -119,7 +183,7 @@ def encnum_font(templatePath, fileName, index):
         rect = (x, y, w, h)
 
         valueList = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
-        fontList = ['font/CONSOLAB.TTF', 'arial']
+        fontList = ['font/arial.ttf', 'font/CONSOLA.TTF', 'font/CONSOLAB.TTF', 'font/Gulim-01.ttf', 'font/GulimChe-02.ttf']
 
         val_ran = random.randrange(0, len(valueList))
         font_ran = random.randrange(0, len(fontList))
@@ -319,7 +383,7 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/encnum_last')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/temp_jumin')
     parser.add_argument('--count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)
