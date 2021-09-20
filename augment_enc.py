@@ -58,7 +58,7 @@ def main(opt):
         for file in tempList:
             if file.split('.')[1] == 'jpg':
                 fileName = file.split('.')[0]
-                image, tree = temp_jumin_font(template, fileName, index, crop)
+                image, tree = ttt(template, fileName, index)
                 image.save(result + f'/' + str(index) + '.jpg', 'jpeg')
                 tree.write(result + f'/' + str(index) + '.xml', encoding='utf-8')
                 print(f'생성: {str(index)}.jpg')
@@ -106,6 +106,40 @@ def loadHangul():
     f.close()
 
     return hangul
+
+
+def ttt(templatePath, fileName, index):
+    image = Image.open(templatePath + '/' + fileName + '.jpg')
+    tree = parse(templatePath + '/' + fileName + '.xml')
+    root = tree.getroot()
+
+    en_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+               'V', 'W', 'X', 'Y', 'Z']
+    fontList = ['font/malgunbd.ttf']
+
+    for tag in root.iter("object"):
+        x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
+        w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
+        rect = (x, y, w, h)
+
+        if tag.findtext("name") == 'en':
+            val_ran = random.randrange(0, len(en_list))
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], en_list[val_ran], image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+            tag.find("name").text = str(en_list[val_ran])
+        if tag.findtext("name") == 'dg':
+            val_ran = random.randrange(0, 10)
+            font_ran = random.randrange(0, len(fontList))
+            image, valueSize = addFont(fontList[font_ran], val_ran, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+            tag.find("name").text = str(val_ran)
+
+    # image = blur(image)
+
+    return image, tree
 
 
 def temp_jumin_font(templatePath, fileName, index, crop):
@@ -383,7 +417,7 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/temp_jumin')
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/ttt')
     parser.add_argument('--count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)
