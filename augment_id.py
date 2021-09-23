@@ -1,4 +1,4 @@
-from xml_search.etree.ElementTree import parse
+from xml.etree.ElementTree import parse
 import os
 import argparse
 import random
@@ -58,29 +58,28 @@ def main(opt):
     else:
         crop_font_path = crop + '/encnum/consolas'
 
-    #
-    # while index <= jumin_count:
-    #     for file in juminFileList:
-    #         if file.split('.')[1].lower() == 'jpg':
-    #             fileName = file.split('.')[0]
-    #             image, tree = jumin(template + '/jumin', fileName, crop)
-    #             image.save(result + '/jumin/jumin_' + str(index) + '.jpg', 'jpeg')
-    #             tree.write(result + '/jumin/jumin_' + str(index) + '.xml')
-    #             print(f'생성: jumin_{str(index)}.jpg')
-    #             index = index + 1
-    #             if index > jumin_count: break
-
-    index = 1
-    while index <= driver_count:
-        for file in driverFileList:
+    while index <= jumin_count:
+        for file in juminFileList:
             if file.split('.')[1].lower() == 'jpg':
                 fileName = file.split('.')[0]
-                image, tree = driver(template + '/driver', fileName, crop, crop_font_path)
-                image.save(result + '/driver/driver_' + str(index) + '.jpg', 'jpeg')
-                tree.write(result + '/driver/driver_' + str(index) + '.xml')
-                print(f'생성: driver_{str(index)}.jpg')
+                image, tree = jumin(template + '/jumin', fileName, crop)
+                image.save(result + '/jumin/jumin_' + str(index) + '.jpg', 'jpeg')
+                tree.write(result + '/jumin/jumin_' + str(index) + '.xml')
+                print(f'생성: jumin_{str(index)}.jpg')
                 index = index + 1
-                if index > driver_count: break
+                if index > jumin_count: break
+
+    # index = 1
+    # while index <= driver_count:
+    #     for file in driverFileList:
+    #         if file.split('.')[1].lower() == 'jpg':
+    #             fileName = file.split('.')[0]
+    #             image, tree = driver(template + '/driver', fileName, crop, crop_font_path)
+    #             image.save(result + '/driver/driver_' + str(index) + '.jpg', 'jpeg')
+    #             tree.write(result + '/driver/driver_' + str(index) + '.xml')
+    #             print(f'생성: driver_{str(index)}.jpg')
+    #             index = index + 1
+    #             if index > driver_count: break
 
 
 def addFont(fontType, value, img, rect):
@@ -98,6 +97,28 @@ def addFont(fontType, value, img, rect):
     draw.text((x, y), str(value), font=font, fill=fillList[fillRandom])
 
     return img
+
+
+def addFont_resize(fontType, value, img, rect):
+    x, y, w, h = rect
+    fillList = [(33, 33, 33, 0), (23, 23, 23, 0), (37, 37, 37, 0), (46, 46, 46, 0), (58, 58, 58, 0),
+                (66, 66, 66, 0)]
+    fillRandom = random.randrange(0, len(fillList))
+
+    # if fontType == 'consolas':
+    #     fontName = 'font/CONSOLAB.TTF'
+    # if fontType == 'gulim':
+    #     fontName = 'font/GulimChe-02.ttf'
+
+    size = w if w > h else h
+    font = ImageFont.truetype(fontType, size)
+    valueSize = font.getsize(str(value))
+    draw = ImageDraw.Draw(img)
+
+    draw.text((x, int(y - h * 0.05)), str(value), font=font, fill=fillList[fillRandom])
+    # draw.text((x + (0.25 * w), y), str(value), font=font, fill=fillList[fillRandom])
+
+    return img, valueSize
 
 
 def addImage(img, crop, rect):
@@ -136,6 +157,8 @@ def jumin(templatePath, fileName, cropPath):
     tree = parse(templatePath + '/' + fileName + '.xml')
     root = tree.getroot()
 
+    hanList = ['天','地','玄','黃','宇','宙','洪','荒','蓋','此','身','髮','四','大','五','常']
+
     for tag in root.iter("object"):
         x, y = int(tag.find("bndbox").findtext("xmin")), int(tag.find("bndbox").findtext("ymin"))
         w, h = int(tag.find("bndbox").findtext("xmax")) - x, int(tag.find("bndbox").findtext("ymax")) - y
@@ -143,45 +166,64 @@ def jumin(templatePath, fileName, cropPath):
 
         if tag.findtext("name").split('_')[-1] == 'ko' or tag.findtext("name").split('_')[-1] == 'kor':
             if tag.findtext("name") == 'name_ko' or tag.findtext("name") == 'jumin_kor':
-                fontType = 'batang'
+                fontType = 'font/BatangChe-02.ttf'
             if tag.findtext("name") == 'addr_ko':
-                fontType = 'batang'
+                fontType = 'font/BatangChe-02.ttf'
             if tag.findtext("name") == 'issueplace_ko' or tag.findtext("name") == 'issue_kor':
-                fontType = 'somang'
-            ranNum = random.randrange(0, len(hangul))
-            value = hangul[ranNum]
-            tag.find("name").text = str(value)
-            image = addFont(fontType, value, image, rect)
+                fontType = 'font/HANSOMAM.TTF'
+            if tag.findtext("name") == 'han_kor':
+                ranNum = random.randrange(0, len(hanList))
+                value = hanList[ranNum]
+            else:
+                ranNum = random.randrange(0, len(hangul))
+                value = hangul[ranNum]
+                tag.find("name").text = str(value)
+            image, valueSize = addFont_resize(fontType, value, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
         if tag.findtext("name") == 'regnum_dg' or tag.findtext("name") == 'addr_dg':
             if tag.findtext("name") == 'regnum_dg':
-                fontType = 'gulim'
+                fontType = 'font/GulimChe-02.ttf'
             if tag.findtext("name") == 'addr_dg':
-                fontType = 'batang'
+                fontType = 'font/BatangChe-02.ttf'
             value = random.randrange(0, 10)
             tag.find("name").text = str(value)
-            image = addFont(fontType, value, image, rect)
+            image, valueSize = addFont_resize(fontType, value, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
         if tag.findtext("name") == 'regnum_hyp':
             value = '-'
             tag.find("name").text = str(value)
-            image = addFont('gulim', value, image, rect)
+            image, valueSize = addFont_resize('font/GulimChe-02.ttf', value, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
         if tag.findtext("name") == 'issuedate_dot':
             value = '.'
             tag.find("name").text = str(value)
-            image = addFont('somang', value, image, rect)
+            image, valueSize = addFont_resize('font/HANSOMAM.TTF', value, image, rect)
+            tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+            tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
         if tag.findtext("name") == 'issuedate_dg':  # ###### 이미지 합성
-            folderPath = cropPath + '/jumin_issue'
-            value = dirDiscovery(folderPath)
-            filePath = folderPath + f'/{value}'
-            tag.find("name").text = str(value)
-            ran = fileRandom(filePath)
-            crop = filePath + f'/{ran}'
-            image = addImage(image, crop, rect)
+            issueRan = random.randrange(0, 10)
+            if issueRan == 0:
+                value = random.randrange(0, 10)
+                tag.find("name").text = str(value)
+                image, valueSize = addFont_resize('font/HANSOMAM.TTF', value, image, rect)
+                tag.find("bndbox").find("xmax").text = str(x + valueSize[0])
+                tag.find("bndbox").find("ymax").text = str(y + valueSize[1])
+            else:
+                folderPath = cropPath + '/jumin_issue'
+                value = dirDiscovery(folderPath)
+                filePath = folderPath + f'/{value}'
+                tag.find("name").text = str(value)
+                ran = fileRandom(filePath)
+                crop = filePath + f'/{ran}'
+                image = addImage(image, crop, rect)
         if tag.findtext("name") == 'title_jumin' or tag.findtext("name") == 'title-jumin':  # ###### 이미지 합성
             folderPath = cropPath + '/title_jumin'
             ran = fileRandom(folderPath)
             crop = folderPath + f'/{ran}'
             image = addImage(image, crop, rect)
-
     # image = blur(image)
 
     return image, tree
@@ -289,8 +331,8 @@ def blur(image):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/augment')
-    parser.add_argument('--jumin_count', type=int, default=100)
+    parser.add_argument('--path', type=str, default='C:/Users/home/Desktop/work/id_0923')
+    parser.add_argument('--jumin_count', type=int, default=40)
     parser.add_argument('--driver_count', type=int, default=100)
     option = parser.parse_args()
     main(opt=option)
