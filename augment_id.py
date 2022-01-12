@@ -137,7 +137,6 @@ def addImageA(img, crop, rect):
     return img
 
 
-
 def loadHangul():
     # 한글 리스트 불러오기
     f, hangul = open('hangul591_list.txt', 'r', encoding='UTF8'), []
