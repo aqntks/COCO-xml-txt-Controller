@@ -40,3 +40,4 @@ for page, cols in enumerate(refined_table):
 for page, cols in enumerate(refined_table):
     for index, field in enumerate(field_list):
         hwp.PutFieldText(f'{field}{{{{{page}}}}}', cols[index+1])
+
